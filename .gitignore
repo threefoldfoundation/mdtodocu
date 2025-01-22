@@ -31,6 +31,7 @@ all_files_text.txt
 # Ignore local test files
 test/
 tmp/
+archive/
 
 # Ignore user-specific files
 *.local

@@ -4,8 +4,7 @@ import os
 import re
 import shutil
 import json
-from pathlib import Path
-import sys  # Import sys to handle command-line arguments
+import sys
 
 def parse_summary(summary_path):
     """
@@ -60,10 +59,132 @@ def create_category_json(directory, label, position):
         json.dump(category_data, file, indent=2)
     print(f"Created: {category_path}")
 
+def extract_image_paths(markdown_content):
+    """
+    Extract image paths from markdown content.
+    Returns a list of image paths.
+    """
+    # Regex to match markdown image syntax: ![alt text](path/to/image.png)
+    image_pattern = re.compile(r'!\[.*?\]\((.*?)\)')
+    return image_pattern.findall(markdown_content)
+
+def find_image_in_directory(image_name, search_dir):
+    """
+    Recursively search for an image file in the directory.
+    Returns the full path to the image if found, otherwise None.
+    """
+    # Normalize the image name to handle .jpg vs .jpeg
+    image_name_without_ext, ext = os.path.splitext(image_name)
+    valid_extensions = [ext, '.jpg', '.jpeg', '.png']  # Add other extensions if needed
+
+    for root, _, files in os.walk(search_dir):
+        for file in files:
+            file_without_ext, file_ext = os.path.splitext(file)
+            if file_without_ext.lower() == image_name_without_ext.lower() and file_ext.lower() in valid_extensions:
+                return os.path.join(root, file)
+    return None
+
+def update_image_paths(markdown_content):
+    """
+    Update image paths in markdown content to use `./img/` prefix.
+    """
+    # Regex to match markdown image syntax: ![alt text](path/to/image.png)
+    image_pattern = re.compile(r'!\[.*?\]\((.*?)\)')
+
+    def replace_image_path(match):
+        image_path = match.group(1)
+        # Extract the image filename
+        image_name = os.path.basename(image_path)
+        # Update the path to use `./img/`
+        return f"![](./img/{image_name})"
+
+    # Replace all image paths in the markdown content
+    updated_content = image_pattern.sub(replace_image_path, markdown_content)
+    return updated_content
+
+def copy_images_to_destination(markdown_path, image_paths, output_dir, search_dir):
+    """
+    Copy images referenced in a markdown file to the correct directory.
+    """
+    # Get the directory of the markdown file in the output directory
+    markdown_dir = os.path.dirname(markdown_path)
+    img_dir = os.path.join(markdown_dir, "img")
+    os.makedirs(img_dir, exist_ok=True)
+
+    # Get the directory of the source markdown file
+    source_markdown_dir = os.path.dirname(find_source_file(os.path.basename(markdown_path), search_dir))
+
+    # Copy each image to the img directory
+    for image_path in image_paths:
+        # Extract the image filename
+        image_name = os.path.basename(image_path)
+
+        # Search for the image in the source directory
+        source_image_path = find_image_in_directory(image_name, source_markdown_dir)
+        
+        if not source_image_path:
+            # If not found in the same directory, search recursively in the entire source directory
+            source_image_path = find_image_in_directory(image_name, search_dir)
+
+        if source_image_path:
+            # Construct the full destination path
+            destination_image_path = os.path.join(img_dir, os.path.basename(source_image_path))
+            
+            # Copy the image
+            shutil.copy(source_image_path, destination_image_path)
+            print(f"Copied image: {source_image_path} -> {destination_image_path}")
+        else:
+            print(f"Warning: Image '{image_name}' not found in source directory. Skipping.")
+
+def verify_images_in_markdown(output_dir, search_dir):
+    """
+    Verify that all images referenced in markdown files exist in the ./img directory.
+    If not, search for them recursively in the source directory and log missing images.
+    """
+    log_file = "mdtodocu.log"
+    missing_images = []
+
+    # Walk through the output directory to find all markdown files
+    for root, _, files in os.walk(output_dir):
+        for file in files:
+            if file.endswith(".md"):
+                markdown_path = os.path.join(root, file)
+                with open(markdown_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # Extract image paths from the markdown content
+                image_paths = extract_image_paths(content)
+                for image_path in image_paths:
+                    # Extract the image filename
+                    image_name = os.path.basename(image_path)
+
+                    # Check if the image exists in the ./img directory
+                    img_dir = os.path.join(os.path.dirname(markdown_path), "img")
+                    image_file = os.path.join(img_dir, image_name)
+
+                    if not os.path.exists(image_file):
+                        # If not found, search for the image recursively in the source directory
+                        source_image_path = find_image_in_directory(image_name, search_dir)
+                        if source_image_path:
+                            # Copy the image to the ./img directory
+                            shutil.copy(source_image_path, image_file)
+                            print(f"Found and copied missing image: {source_image_path} -> {image_file}")
+                        else:
+                            # Log the missing image
+                            missing_images.append(image_name)
+                            print(f"Missing image: {image_name}")
+
+    # Write missing images to the log file
+    if missing_images:
+        with open(log_file, 'w', encoding='utf-8') as log:
+            for image_name in missing_images:
+                log.write(f'Image "{image_name}" cannot be found.\n')
+        print(f"Logged missing images to {log_file}")
+
 def create_directory_structure(hierarchy, search_dir, output_dir):
     """
     Create the directory structure based on the hierarchy, copy files, add frontmatter,
-    and create _category_.json files for directories.
+    create _category_.json files for directories, and handle images.
     """
     current_level = 0
     current_path = output_dir
@@ -124,14 +245,22 @@ def create_directory_structure(hierarchy, search_dir, output_dir):
         with open(source_file, 'r', encoding='utf-8') as file:
             original_content = file.read()
 
+        # Update image paths in the markdown content
+        updated_content = update_image_paths(original_content)
+
         # Generate the frontmatter
         frontmatter = generate_frontmatter(title, position)
 
         # Write the updated content to the destination path
         with open(destination_path, 'w', encoding='utf-8') as file:
-            file.write(frontmatter + original_content)
+            file.write(frontmatter + updated_content)
 
         print(f"Updated and copied: {source_file} -> {destination_path}")
+
+        # Handle images in the markdown file
+        image_paths = extract_image_paths(updated_content)
+        if image_paths:
+            copy_images_to_destination(destination_path, image_paths, output_dir, search_dir)
 
 def print_directory_tree(directory, prefix=""):
     """
@@ -172,6 +301,9 @@ def main():
 
     # Create the directory structure, copy files, add frontmatter, and create _category_.json files
     create_directory_structure(hierarchy, search_dir, output_dir)
+
+    # Verify that all images referenced in markdown files exist in the ./img directory
+    verify_images_in_markdown(output_dir, search_dir)
 
     # Print final directory tree
     print("\nFinal Directory Tree:")
