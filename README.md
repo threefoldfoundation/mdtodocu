@@ -7,6 +7,7 @@
   - [Introduction](#introduction)
   - [Features](#features)
   - [Installation](#installation)
+    - [Using Makefile](#using-makefile)
   - [Usage](#usage)
     - [1. Convert mdbook to Docusaurus](#1-convert-mdbook-to-docusaurus)
     - [2. Command-Line Arguments](#2-command-line-arguments)
@@ -41,13 +42,35 @@
 
 ## Installation
 
+### Using Makefile
+
+The repository includes a **Makefile** to simplify installation, rebuilding, and uninstallation of the script.
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/mik-tf/mdtodocu.git
    cd mdtodocu
    ```
 
-2. Ensure Python 3.x is installed on your system.
+2. Install the script system-wide using the Makefile:
+   ```bash
+   make build
+   ```
+
+   This will:
+   - Copy the script to `/usr/local/bin/`.
+   - Make the script executable.
+   - If necessary, you will be prompted for your password to complete the installation.
+
+3. To rebuild the installation (e.g., after updating the script):
+   ```bash
+   make rebuild
+   ```
+
+4. To uninstall the script:
+   ```bash
+   make delete
+   ```
 
 ---
 
@@ -57,7 +80,7 @@
 
 Run the script with the following command:
 ```bash
-python mdtodocu.py <userinput>
+mdtodocu <userinput>
 ```
 
 Replace `<userinput>` with the name of the mdbook directory you want to convert. The script will look for a `SUMMARY.md` file in `../books/<userinput>/SUMMARY.md` and process the markdown files accordingly.
@@ -68,7 +91,7 @@ Replace `<userinput>` with the name of the mdbook directory you want to convert.
 
 #### Example:
 ```bash
-python mdtodocu.py my-mdbook
+mdtodocu my-mdbook
 ```
 
 This will:
