@@ -129,22 +129,13 @@ def copy_images_to_destination(markdown_path, image_paths, output_dir, search_di
         if source_image_path:
             # Construct the full destination path
             destination_image_path = os.path.join(img_dir, os.path.basename(source_image_path))
-
-            # Normalize paths to avoid SameFileError
-            source_image_path = os.path.normpath(source_image_path)
-            destination_image_path = os.path.normpath(destination_image_path)
-
-            # Check if source and destination are the same file
-            if os.path.abspath(source_image_path) == os.path.abspath(destination_image_path):
-                print(f"Skipping: Source and destination are the same file: {source_image_path}")
-                continue
-
+            
             # Copy the image
             shutil.copy(source_image_path, destination_image_path)
             print(f"Copied image: {source_image_path} -> {destination_image_path}")
         else:
             print(f"Warning: Image '{image_name}' not found in source directory. Skipping.")
-            
+
 def verify_images_in_markdown(output_dir, search_dir):
     """
     Verify that all images referenced in markdown files exist in the ./img directory.
