@@ -374,7 +374,7 @@ def main():
     # Define paths
     summary_path = f"../books/{userinput}/SUMMARY.md"  # Path to SUMMARY.md
     search_dir = "."  # Current directory (collections/)
-    output_dir = f"docu_books/{userinput}"  # Output directory (inside collections/)
+    output_dir = f"docu_book/{userinput}"  # Output directory (inside collections/)
 
     # Parse the SUMMARY.md file
     hierarchy = parse_summary(summary_path)
