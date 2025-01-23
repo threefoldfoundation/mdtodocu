@@ -181,6 +181,50 @@ def verify_images_in_markdown(output_dir, search_dir):
                 log.write(f'Image "{image_name}" cannot be found.\n')
         print(f"Logged missing images to {log_file}")
 
+def process_include_statements(markdown_content, search_dir):
+    """
+    Process include statements in the markdown content.
+    Replace the include statement with the content of the referenced file.
+    Supports both direct file references and collection-based references (e.g., 'tech:mycelium0.md').
+    """
+    # Regex to match include statements:
+    # !!wiki.include page:filename or !!wiki.include page:'collection:filename'
+    include_pattern = re.compile(r"!!wiki\.include page:(?:'([^:]+):([^']+)'|([^\s]+))")
+
+    def replace_include(match):
+        # Check if the include statement uses the collection format (e.g., 'tech:mycelium0.md')
+        if match.group(1) and match.group(2):
+            collection = match.group(1)  # Collection name (e.g., 'tech')
+            include_filename = match.group(2)  # Filename (e.g., 'mycelium0.md')
+        else:
+            # Direct file reference (e.g., 'mycelium0.md')
+            collection = None
+            include_filename = match.group(3)
+
+        # Ensure the filename has the .md extension
+        if not include_filename.endswith('.md'):
+            include_filename += '.md'
+
+        # Determine the directory to search based on the collection
+        if collection:
+            # Search in the collection directory (e.g., './tech/')
+            collection_dir = os.path.join(search_dir, collection)
+            included_file_path = find_source_file(include_filename, collection_dir)
+        else:
+            # Search recursively in the main directory
+            included_file_path = find_source_file(include_filename, search_dir)
+
+        if included_file_path:
+            with open(included_file_path, 'r', encoding='utf-8') as included_file:
+                return included_file.read()
+        else:
+            print(f"Warning: Included file '{include_filename}' not found in collection '{collection}'. Skipping.")
+            return match.group(0)  # Return the original include statement if file not found
+
+    # Replace all include statements in the markdown content
+    processed_content = include_pattern.sub(replace_include, markdown_content)
+    return processed_content
+
 def create_directory_structure(hierarchy, search_dir, output_dir):
     """
     Create the directory structure based on the hierarchy, copy files, add frontmatter,
@@ -245,8 +289,11 @@ def create_directory_structure(hierarchy, search_dir, output_dir):
         with open(source_file, 'r', encoding='utf-8') as file:
             original_content = file.read()
 
+        # Process include statements
+        updated_content = process_include_statements(original_content, search_dir)
+
         # Update image paths in the markdown content
-        updated_content = update_image_paths(original_content)
+        updated_content = update_image_paths(updated_content)
 
         # Generate the frontmatter
         frontmatter = generate_frontmatter(title, position)
@@ -285,9 +332,9 @@ def main():
     userinput = sys.argv[1]
 
     # Define paths
-    summary_path = f"../books/{userinput}/SUMMARY.md"
-    search_dir = "."  # Search the current directory recursively
-    output_dir = f"docu_books/{userinput}"  # Output directory includes user input
+    summary_path = f"../books/{userinput}/SUMMARY.md"  # Path to SUMMARY.md
+    search_dir = "."  # Current directory (collections/)
+    output_dir = f"docu_books/{userinput}"  # Output directory (inside collections/)
 
     # Parse the SUMMARY.md file
     hierarchy = parse_summary(summary_path)
