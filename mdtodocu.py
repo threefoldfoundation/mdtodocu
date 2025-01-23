@@ -197,18 +197,22 @@ def process_include_statements(markdown_content, search_dir):
     Supports both direct file references and collection-based references (e.g., 'tech:mycelium0.md').
     """
     # Regex to match include statements:
-    # !!wiki.include page:filename or !!wiki.include page:'collection:filename'
-    include_pattern = re.compile(r"!!wiki\.include page:(?:'([^:]+):([^']+)'|([^\s]+))")
+    # !!wiki.include page:filename or !!wiki.include page:'collection:filename' or !!wiki.include page:'filename'
+    include_pattern = re.compile(r"!!wiki\.include page:(?:'([^:]+):([^']+)'|'([^']+)'|([^\s]+))")
 
     def replace_include(match):
         # Check if the include statement uses the collection format (e.g., 'tech:mycelium0.md')
         if match.group(1) and match.group(2):
             collection = match.group(1)  # Collection name (e.g., 'tech')
             include_filename = match.group(2)  # Filename (e.g., 'mycelium0.md')
-        else:
-            # Direct file reference (e.g., 'mycelium0.md')
+        elif match.group(3):
+            # Direct file reference with single quotes (e.g., 'internet_archtecture0.md')
             collection = None
             include_filename = match.group(3)
+        else:
+            # Direct file reference without single quotes (e.g., 'mycelium0.md')
+            collection = None
+            include_filename = match.group(4)
 
         # Ensure the filename has the .md extension
         if not include_filename.endswith('.md'):
