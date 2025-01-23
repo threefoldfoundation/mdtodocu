@@ -48,7 +48,7 @@ The repository includes a **Makefile** to simplify installation, rebuilding, and
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/mik-tf/mdtodocu.git
+   git clone https://github.com/threefoldfoundation/mdtodocu.git
    cd mdtodocu
    ```
 
@@ -130,7 +130,7 @@ This will:
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/mik-tf/mdtodocu/issues) or submit a pull request.
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/threefoldfoundation/mdtodocu/issues) or submit a pull request.
 
 ---
 
