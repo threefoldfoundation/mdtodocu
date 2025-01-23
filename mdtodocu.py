@@ -335,6 +335,33 @@ def print_directory_tree(directory, prefix=""):
         else:
             print(f"{prefix}├── {item}")
 
+def reorganize_directory(output_dir, userinput):
+    """
+    Reorganize the directory structure by moving all files and directories
+    from the parent of output_dir into the output_dir, except for the output_dir itself.
+    """
+    # Get the parent directory of output_dir
+    parent_dir = os.path.dirname(output_dir)
+
+    # Ensure the output_dir exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    # List all items in the parent directory
+    items = os.listdir(parent_dir)
+
+    # Move each item into the output_dir
+    for item in items:
+        item_path = os.path.join(parent_dir, item)
+        target_path = os.path.join(output_dir, item)
+
+        # Skip the output_dir itself to avoid recursion
+        if item_path == output_dir:
+            continue
+
+        # Move the item
+        shutil.move(item_path, target_path)
+        print(f"Moved: {item_path} -> {target_path}")
+
 def main():
     # Check if the user provided a command-line argument
     if len(sys.argv) != 2:
@@ -364,6 +391,9 @@ def main():
 
     # Verify that all images referenced in markdown files exist in the ./img directory
     verify_images_in_markdown(output_dir, search_dir)
+
+    # Reorganize the directory structure
+    reorganize_directory(output_dir, userinput)
 
     # Print final directory tree
     print("\nFinal Directory Tree:")
