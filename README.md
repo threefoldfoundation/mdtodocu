@@ -32,8 +32,6 @@
 
 ## Limitations
 
-- It does not copy the images
-- It does not include the hero mdbook include sections
 - It creates a book for each collections (can't do multi-collections perfectly)
 
 ## Installation
